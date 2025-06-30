@@ -4,6 +4,8 @@ import subprocess
 import time
 import re
 import shutil
+import requests
+import json
 from pymongo import MongoClient
 
 mongoClient = MongoClient(
@@ -112,6 +114,22 @@ def ejecutar_pig(script_path="procesar_alertas.pig"):
     print("STDOUT:\n", resultado.stdout)
     print("STDERR:\n", resultado.stderr)
 
+def subir_csv_a_elasticsearch(csv_file, index_name, es_url="http://localhost:9200"):
+    with open(csv_file, newline='', encoding='utf-8') as f:
+        reader = csv.reader(f)
+        for row in reader:
+            doc = {
+                "nombre": row[0].strip('"'),
+                "cantidad": int(row[1])
+            }
+
+            response = requests.post(
+                f"{es_url}/{index_name}/_doc",
+                headers={"Content-Type": "application/json"},
+                data=json.dumps(doc)
+            )
+
+            print(response.status_code, response.json())
 
 def main():
     datos = get_events_db()
@@ -129,4 +147,7 @@ if __name__ == "__main__":
     main()
     shutil.copytree("./salida_por_calle", "./salidas_calle", dirs_exist_ok=True)
     shutil.copytree("./salida_por_comuna", "./salidas_comuna", dirs_exist_ok=True)
+
+    #subir_csv_a_elasticsearch("./salida_por_calle/part-r-00000", "calles")
+    #subir_csv_a_elasticsearch("./salida_por_comuna/part-r-00000", "comunas")
     time.sleep(12122222)

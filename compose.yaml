@@ -32,3 +32,43 @@ services:
     depends_on:
       - mongodb
       - scraper
+      - elasticsearch
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.0.0
+    deploy:
+      resources:
+        limits:
+          memory: 1GB
+    ports:
+      - "9200:9200"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.0.0
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+
+  redis:
+    image: "redis:latest"
+    hostname: rediss
+    ports:
+      - 6379:6379
+    volumes:
+      - ./data:/data
+
+  cache: 
+    build: ./cache
+    hostname: cachechito
+    ports:
+      - 9090:9090
+    environment:
+      #- EVICTION_POLICY=allkeys-random
+      - EVICTION_POLICY=allkeys-lru
+    depends_on:
+      - redis
